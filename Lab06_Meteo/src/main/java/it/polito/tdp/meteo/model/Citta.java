@@ -1,5 +1,6 @@
 package it.polito.tdp.meteo.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Citta {
@@ -76,6 +77,29 @@ public class Citta {
 	@Override
 	public String toString() {
 		return nome;
+	}
+	
+	@SuppressWarnings("deprecation")
+	public double getMediaUmiditaPerMese(int mese) {
+		int somma=0;
+		int cont=0;
+		for (Rilevamento r : rilevamenti) {
+			if (r.getData().getMonth()==mese) {
+				cont++; 
+				somma+=r.getUmidita();
+			}
+		}
+		return somma/cont;
+	}
+	
+	public List <Rilevamento> rilevamentiPrimaMetaMese (int mese) {
+		List <Rilevamento> result = new ArrayList<>();
+		int cont=1;
+		for (Rilevamento r : rilevamenti) {
+			if (r.getData().getMonth()==mese && r.getData().getDay()==cont++) 
+				result.add(r);
+		}
+		return result;
 	}
 	
 
