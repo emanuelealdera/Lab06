@@ -41,7 +41,9 @@ public class Model {
 		minimo=300*NUMERO_GIORNI_TOTALI;
 		this.bestSequenza = new ArrayList<>();
 		List <Rilevamento> parziale = new LinkedList<> ();
-		cerca(parziale, 0, mese);
+		List <Rilevamento> tutte = meteodao.getAllRilevamentiPerMese(mese);
+		cerca(tutte, parziale, 0, mese);
+		
 		
 		String str="";
 		for (Rilevamento r : this.bestSequenza) {
@@ -52,7 +54,7 @@ public class Model {
 	}
 	
 	
-	private void cerca(List <Rilevamento> parziale, int somma, int mese) {
+	private void cerca(List <Rilevamento> tutte, List <Rilevamento> parziale, int somma, int mese) {
 		//caso terminale
 		if (parziale.size() == NUMERO_GIORNI_TOTALI && this.tutteLeCittaPresenti(parziale) && controlloGiorniMassimo(parziale)) {
 			if (somma < this.minimo) {
@@ -62,39 +64,43 @@ public class Model {
 		}
 		
 		//creazione sottoproblemi
-		for (Rilevamento r : meteodao.getAllRilevamentiPerGiornoMese(parziale.size()+1, mese)) {
-			if (parziale.isEmpty() && r.getGiorno()==parziale.size()+1) {
-				somma = 0;
-				parziale.add(r);
-				somma += r.getUmidita();
-				cerca(parziale, somma, mese);
-				somma = 0;
-				parziale.remove(r);
-			}
+		for (Rilevamento r : tutte) {
 			
-			else {
-				if (r.getLocalita().equals(parziale.get(parziale.size()-1).getLocalita()) && parziale.size()+1 == r.getGiorno()) {
-					if (somma + r.getUmidita() < this.minimo && controlloGiorniMassimo(parziale)) {
-						parziale.add(r);
-						somma += r.getUmidita();
-						cerca(parziale, somma, mese);
-						somma = somma -r.getUmidita();
-						parziale.remove(r);
-				}}
+			
+			if (r.getGiorno() == parziale.size()+1) {
+
+				if (parziale.isEmpty() && r.getGiorno()==parziale.size()+1) {
+					somma = 0;
+					parziale.add(r);
+					somma += r.getUmidita();
+					cerca(tutte, parziale, somma, mese);
+					somma = 0;
+					parziale.remove(r);
+				}
+
 				else {
-					if (possoCambiareLocalita(parziale) && parziale.size()+1 == r.getGiorno()) {
+					if (r.getLocalita().equals(parziale.get(parziale.size()-1).getLocalita()) && parziale.size()+1 == r.getGiorno()) {
 						if (somma + r.getUmidita() < this.minimo && controlloGiorniMassimo(parziale)) {
 							parziale.add(r);
-							somma += COST + r.getUmidita();
-							cerca(parziale, somma, mese);
+							somma += r.getUmidita();
+							cerca(tutte, parziale, somma, mese);
+							somma = somma -r.getUmidita();
 							parziale.remove(r);
-							somma = somma - COST - r.getUmidita();
-					}}
+						}}
+					else {
+						if (possoCambiareLocalita(parziale) && parziale.size()+1 == r.getGiorno()) {
+							if (somma + r.getUmidita() < this.minimo && controlloGiorniMassimo(parziale)) {
+								parziale.add(r);
+								somma += COST + r.getUmidita();
+								cerca(tutte, parziale, somma, mese);
+								parziale.remove(r);
+								somma = somma - COST - r.getUmidita();
+							}}
+					}
+
 				}
-					
 			}
 		}
-
 	}
 	
 	private void popolaCitta() {

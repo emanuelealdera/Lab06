@@ -67,7 +67,6 @@ this.txtResult.clear();
     void doCalcolaUmidita(ActionEvent event) {
 
     	this.txtResult.clear();
-    	
     	String stringMese = boxMese.getValue();
     	int mese=0;
     	try {
@@ -75,8 +74,8 @@ this.txtResult.clear();
     	} catch (NumberFormatException e) {
     		e.printStackTrace();
     	}
-    	
     	txtResult.setText(model.getUmiditaMedia(mese));
+    	
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete

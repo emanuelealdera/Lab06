@@ -98,7 +98,7 @@ public class MeteoDAO {
 	}
 	
 	
-	public List<Rilevamento> getAllRilevamentiPerGiornoMese(int giorno, int mese) {
+	public List<Rilevamento> getAllRilevamentiPerMese(int giorno, int mese) {
 
 		final String sql = "SELECT Localita, DAY(Data), Umidita FROM situazione WHERE MONTH(Data)=? and DAY(Data)=?";
 
