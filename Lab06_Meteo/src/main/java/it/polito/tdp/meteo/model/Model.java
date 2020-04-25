@@ -1,6 +1,7 @@
 package it.polito.tdp.meteo.model;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import it.polito.tdp.meteo.DAO.MeteoDAO;
@@ -37,24 +38,23 @@ public class Model {
 	// of course you can change the String output with what you think works best
 	public String trovaSequenza(int mese) {
 		
-		minimo=200*NUMERO_GIORNI_TOTALI;
+		minimo=300*NUMERO_GIORNI_TOTALI;
 		this.bestSequenza = new ArrayList<>();
-		List <Rilevamento> parziale = new ArrayList<> ();
-		List <Rilevamento> tutte = meteodao.getAllRilevamentiPerMese(mese);
-		cerca(tutte, parziale, 1, 0);
+		List <Rilevamento> parziale = new LinkedList<> ();
+		cerca(parziale, 0, mese);
 		
 		String str="";
 		for (Rilevamento r : this.bestSequenza) {
-			str+= r.getLocalita()+" "+r.getUmidita()+"\n";
+			str+=r.getGiorno()+ " " + r.getLocalita()+" "+r.getUmidita()+"\n";
 		}
 		
 		return "Costo minimo: "+minimo+"\n"+str;
 	}
 	
 	
-	private void cerca(List <Rilevamento> tutte, List <Rilevamento> parziale, int livello, int somma) {
+	private void cerca(List <Rilevamento> parziale, int somma, int mese) {
 		//caso terminale
-		if (livello == NUMERO_GIORNI_TOTALI +1 && this.tutteLeCittaPresenti(parziale) && controlloGiorniMassimo(parziale)) {
+		if (parziale.size() == NUMERO_GIORNI_TOTALI && this.tutteLeCittaPresenti(parziale) && controlloGiorniMassimo(parziale)) {
 			if (somma < this.minimo) {
 				this.minimo = somma; 
 				this.bestSequenza = new ArrayList <> (parziale) ;
@@ -62,54 +62,39 @@ public class Model {
 		}
 		
 		//creazione sottoproblemi
-		for (Rilevamento r : tutte) {
-			//considero solo i rilevamenti dove il livello corrisponde al giorno giusto
-			if (livello == r.getGiorno()) {
-				// caso in cui non possa cambiare localita perche non ci sono rimasto abbastanza
-				if (possoCambiareLocalita(parziale)==false) {
-					if (parziale.isEmpty() || r.getLocalita().equals(parziale.get(parziale.size()-1).getLocalita())) {
-						parziale.add(r);
-						somma += r.getUmidita();
-						if (somma < this.minimo || controlloGiorniMassimo(parziale)) {
-							cerca (tutte, parziale, livello +1, somma);
-							//backtracking
-							somma = somma - r.getUmidita();
-							parziale.remove(parziale.size()-1);
-						}
-					}
-				}
-				
-				//caso in cui posso cambiare localita
-				//qui provo prima a cambiarla e poi, dopo il backtracking, a non cambiarla
-				
-				else {
-					//cambio localita
-					if (!r.getLocalita().equals(parziale.get(parziale.size()-1).getLocalita())) {
-						parziale.add(r);
-						somma += COST + r.getUmidita();
-						if (somma < this.minimo || controlloGiorniMassimo(parziale)) {
-							cerca (tutte, parziale, livello +1, somma );
-							//backtracking
-							somma = somma - COST - r.getUmidita();
-							parziale.remove(parziale.get(parziale.size()-1));
-						}
-					}
-					//non cambio localita
-					else {
-						parziale.add(r);
-						somma += r.getUmidita();
-						if (somma < this.minimo || controlloGiorniMassimo(parziale)) {
-							cerca (tutte, parziale, livello +1, somma );
-							//backtracking
-							somma = somma - r.getUmidita();
-							parziale.remove(parziale.get(parziale.size()-1));
-						}
-					}
-
-				}
+		for (Rilevamento r : meteodao.getAllRilevamentiPerGiornoMese(parziale.size()+1, mese)) {
+			if (parziale.isEmpty() && r.getGiorno()==parziale.size()+1) {
+				somma = 0;
+				parziale.add(r);
+				somma += r.getUmidita();
+				cerca(parziale, somma, mese);
+				somma = 0;
+				parziale.remove(r);
 			}
-
+			
+			else {
+				if (r.getLocalita().equals(parziale.get(parziale.size()-1).getLocalita()) && parziale.size()+1 == r.getGiorno()) {
+					if (somma + r.getUmidita() < this.minimo && controlloGiorniMassimo(parziale)) {
+						parziale.add(r);
+						somma += r.getUmidita();
+						cerca(parziale, somma, mese);
+						somma = somma -r.getUmidita();
+						parziale.remove(r);
+				}}
+				else {
+					if (possoCambiareLocalita(parziale) && parziale.size()+1 == r.getGiorno()) {
+						if (somma + r.getUmidita() < this.minimo && controlloGiorniMassimo(parziale)) {
+							parziale.add(r);
+							somma += COST + r.getUmidita();
+							cerca(parziale, somma, mese);
+							parziale.remove(r);
+							somma = somma - COST - r.getUmidita();
+					}}
+				}
+					
+			}
 		}
+
 	}
 	
 	private void popolaCitta() {
@@ -130,7 +115,7 @@ public class Model {
 		return cont;
 	}
 	
-	private boolean controlloGiorniMassimo (List <Rilevamento> rilevamenti ) {
+	private boolean controlloGiorniMassimo (List <Rilevamento> rilevamenti) {
 		boolean temp = true ; 
 		for (Citta citta : this.citta) {
 			if (giorniLocalita(citta.getNome(), rilevamenti) > NUMERO_GIORNI_CITTA_MAX)
